@@ -1,0 +1,10 @@
+[
+{
+  "name":"com.lei.graalvm.StringCapitalizer",
+  "methods":[{"name":"capitalize","parameterTypes":["java.lang.String"] }]
+},
+{
+  "name":"com.lei.graalvm.StringReverser",
+  "methods":[{"name":"reverse","parameterTypes":["java.lang.String"] }]
+}
+]

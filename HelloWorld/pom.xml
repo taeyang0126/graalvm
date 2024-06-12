@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.lei.graalvm</groupId>
+    <artifactId>HelloWorld</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>22</maven.compiler.source>
+        <maven.compiler.target>22</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <main.class>com.lei.graalvm.HelloWorld</main.class>
+        <native.maven.plugin.version>0.10.2</native.maven.plugin.version>
+    </properties>
+
+    <build>
+        <plugins>
+            <!--编译成可执行的jar-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.12.1</version>
+                <configuration>
+                    <fork>true</fork>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>${main.class}</mainClass>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native.maven.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <buildArgs>
+                                <!--允许本地可执行文件访问未命名的模块，这是在需要反射或深度访问 JVM 内部时使用的-->
+                                <buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+                                <!--这个参数禁用回退机制，如果本地图像生成失败，它不会回退到 JVM 运行时。这意味着如果编译失败，程序就会失败，而不会尝试使用标准 JVM。-->
+                                <buildArg>--no-fallback</buildArg>
+                                <!--这个参数启用了 Java 语言的预览特性，适用于使用尚未正式发布的语言特性时-->
+                                <buildArg>--enable-preview</buildArg>
+                                <!--这个参数禁用了所有优化，打包时间更短，适合调试-->
+                                <buildArg>-Ob</buildArg>
+                                <!--这个参数启用了调试信息生成，允许在生成的本地可执行文件中包含调试信息-->
+                                <buildArg>-g</buildArg>
+                                <!--这个参数指示 native-image 包括所有字符集支持，确保生成的可执行文件能够处理各种字符集-->
+                                <buildArg>-H:+AddAllCharsets</buildArg>
+                            </buildArgs>
+                            <!--这个配置项跳过本地测试。设置为 true 时，本地可执行文件的测试将被跳过-->
+                            <skipNativeTests>true</skipNativeTests>
+                            <mainClass>${main.class}</mainClass>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+
+
+
+
+</project>
