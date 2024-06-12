@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.lei.graalvm</groupId>
+    <artifactId>excel-poi</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>22</java.version>
+        <main.class>com.lei.graalvm.excel.poi.App</main.class>
+        <native.maven.plugin.version>0.10.2</native.maven.plugin.version>
+    </properties>
+
+    <dependencies>
+        <!-- excel工具 -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>4.1.2</version>
+        </dependency>
+        <!-- 读取大量excel数据时使用 -->
+        <dependency>
+            <groupId>com.monitorjbl</groupId>
+            <artifactId>xlsx-streamer</artifactId>
+            <version>2.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>4.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>RELEASE</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <compilerArgs>
+                        <compilerArg>--enable-preview</compilerArg>
+                    </compilerArgs>
+                    <meminitial>256m</meminitial>
+                    <maxmem>256m</maxmem>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.4</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>${main.class}</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                            <outputFile>${project.build.directory}/${project.artifactId}-fat.jar
+                            </outputFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>native-release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native.maven.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <buildArgs>
+                                <buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+                                <buildArg>--no-fallback</buildArg>
+                                <buildArg>--enable-preview</buildArg>
+                                <!--启用最高级别的优化。这个参数会告诉编译器尽可能地优化代码，以获得更高的运行时性能。优化级别包括 O1、O2 和 O3，其中 O3 是最高级别-->
+                                <buildArg>-O3</buildArg>
+                                <!--生成针对当前构建机器的特定 CPU 指令集的代码。这可以利用构建机器的特定硬件特性进行优化，从而提高性能-->
+                                <buildArg>-march=native</buildArg>
+                                <buildArg>-H:+AddAllCharsets</buildArg>
+                            </buildArgs>
+                            <skipNativeTests>true</skipNativeTests>
+                            <mainClass>${main.class}</mainClass>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>native-debug</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native.maven.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <buildArgs>
+                                <!--允许本地可执行文件访问未命名的模块，这是在需要反射或深度访问 JVM 内部时使用的-->
+                                <buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+                                <!--这个参数禁用回退机制，如果本地图像生成失败，它不会回退到 JVM 运行时。这意味着如果编译失败，程序就会失败，而不会尝试使用标准 JVM。-->
+                                <buildArg>--no-fallback</buildArg>
+                                <!--这个参数启用了 Java 语言的预览特性，适用于使用尚未正式发布的语言特性时-->
+                                <buildArg>--enable-preview</buildArg>
+                                <!--这个参数禁用了所有优化，打包时间更短，适合调试-->
+                                <buildArg>-Ob</buildArg>
+                                <!--这个参数启用了调试信息生成，允许在生成的本地可执行文件中包含调试信息-->
+                                <buildArg>-g</buildArg>
+                                <!--这个参数指示 native-image 包括所有字符集支持，确保生成的可执行文件能够处理各种字符集-->
+                                <buildArg>-H:+AddAllCharsets</buildArg>
+                            </buildArgs>
+                            <skipNativeTests>true</skipNativeTests>
+                            <mainClass>${main.class}</mainClass>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
+
+</project>
