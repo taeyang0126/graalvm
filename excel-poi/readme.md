@@ -24,5 +24,7 @@ mvn clean package
 java -agentlib:native-image-agent=config-output-dir=src/main/resources/META-INF/native-image,experimental-class-define-support --enable-preview -jar target/excel-poi-fat.jar
 
 # debug 方式构建 native-image
-mvn clean package -Pnative
+mvn clean package -Pnative-debug
+# release 方式构建 native-image
+#mvn clean package -Pnative-release
 ```
